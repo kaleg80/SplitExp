@@ -1,0 +1,30 @@
+export interface User {
+    id: string;
+    event_id: string;
+    name: string;
+    created_at?: string;
+}
+
+export interface Expense {
+    id: string;
+    event_id: string;
+    description: string;
+    amount: number;
+    payer_id: string; // Changed from payerId to match DB
+    created_at?: string;
+    split_type: 'EQUAL';
+}
+
+export interface Event {
+    id: string;
+    name: string;
+    users: User[];
+    expenses: Expense[];
+    created_at: string;
+}
+
+export interface Debt {
+    from: string; // User ID
+    to: string; // User ID
+    amount: number;
+}
