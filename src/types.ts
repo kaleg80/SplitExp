@@ -14,6 +14,7 @@ export interface Expense {
     created_at?: string;
     split_type: 'EQUAL';
     receipt_url?: string;
+    involved_users?: string[]; // Array of user IDs
 }
 
 export interface Event {

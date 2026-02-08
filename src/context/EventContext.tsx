@@ -18,8 +18,8 @@ interface EventContextType {
     createEvent: (name: string, currency: string) => Promise<string | null>;
     loadEvent: (id: string) => Promise<void>;
     addUser: (name: string) => Promise<void>;
-    addExpense: (description: string, amount: number, payerId: string, receipt?: File) => Promise<void>;
-    updateExpense: (id: string, description: string, amount: number, payerId: string, receipt?: File | string) => Promise<void>;
+    addExpense: (description: string, amount: number, payerId: string, receipt?: File | null, involvedUserIds?: string[]) => Promise<void>;
+    updateExpense: (id: string, description: string, amount: number, payerId: string, receipt?: File | string | null, involvedUserIds?: string[]) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
     exitEvent: () => void;
@@ -47,11 +47,9 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         // Load active event
         const savedId = localStorage.getItem('splitwise_event_id');
         if (savedId) {
-            // We use a separate function or call loadEvent directly if it's stable
-            // But loadEvent depends on fetchEventData which is stable
             fetchEventData(savedId).catch(console.error);
         }
-    }, []); // Empty dependency array is intended for mount only
+    }, []);
 
     // Persist recent events whenever they change
     useEffect(() => {
@@ -71,10 +69,8 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
     const fetchEventData = useCallback(async (eventId: string) => {
         try {
-            // Only set loading if we don't have data yet (first load)
-            // For updates, we want to be silent
             setEvent(prev => {
-                if (!prev) setLoading(true); // Only trigger loading UI on first fetch of the session/event switch
+                if (!prev) setLoading(true);
                 return prev;
             });
 
@@ -110,7 +106,6 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
         } catch (e) {
             console.error("Error fetching event:", e);
-            // Don't throw, just let UI handle empty/loading state if needed
         } finally {
             setLoading(false);
         }
@@ -175,7 +170,6 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
             setEvent(prev => prev ? { ...prev, users: [...prev.users, tempUser] } : null);
 
             await supabase.from('users').insert({ event_id: event.id, name });
-            // Realtime will fix the ID
         } catch (e) {
             console.error("Error adding user:", e);
         }
@@ -217,7 +211,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const addExpense = useCallback(async (description: string, amount: number, payerId: string, receipt?: File) => {
+    const addExpense = useCallback(async (description: string, amount: number, payerId: string, receipt?: File | null, involvedUserIds?: string[]) => {
         if (!event) return;
 
         // Optimistic UI Update
@@ -229,7 +223,8 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
             amount,
             payer_id: payerId,
             split_type: 'EQUAL',
-            receipt_url: receipt ? URL.createObjectURL(receipt) : undefined
+            receipt_url: receipt ? URL.createObjectURL(receipt) : undefined,
+            involved_users: involvedUserIds
         };
 
         setEvent(prev => prev ? { ...prev, expenses: [newExpense, ...prev.expenses] } : null);
@@ -245,8 +240,9 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
                 payer_id: payerId,
                 description,
                 amount,
-                split_type: 'EQUAL', // Default
-                receipt_url
+                split_type: 'EQUAL',
+                receipt_url,
+                involved_users: involvedUserIds
             });
 
             if (error) throw error;
@@ -259,7 +255,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         }
     }, [event, uploadReceipt]);
 
-    const updateExpense = useCallback(async (id: string, description: string, amount: number, payerId: string, receipt?: File | string) => {
+    const updateExpense = useCallback(async (id: string, description: string, amount: number, payerId: string, receipt?: File | string | null, involvedUserIds?: string[]) => {
         if (!event) return;
 
         // Optimistic Update
@@ -272,7 +268,8 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
                 description,
                 amount,
                 payer_id: payerId,
-                receipt_url: receipt instanceof File ? URL.createObjectURL(receipt) : (typeof receipt === 'string' ? receipt : e.receipt_url)
+                receipt_url: receipt instanceof File ? URL.createObjectURL(receipt) : (typeof receipt === 'string' ? receipt : e.receipt_url),
+                involved_users: involvedUserIds
             } : e)
         } : null);
 
@@ -288,9 +285,12 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
             const updateData: any = {
                 description,
                 amount,
-                payer_id: payerId
+                payer_id: payerId,
+                involved_users: involvedUserIds
             };
 
+            // Only update receipt if new file or explicitly null (removed, though UI doesn't support removal yet)
+            // If it's undefined/null and not meant to be changed, logic might need adjustment but usually we pass existing URL
             if (receipt_url !== null) {
                 updateData.receipt_url = receipt_url;
             }
@@ -333,7 +333,6 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
             // 1. Cleanup Storage (Best Effort)
             try {
-                // Fetch expenses with receipts
                 const { data: expenses } = await supabase
                     .from('expenses')
                     .select('receipt_url')
@@ -369,7 +368,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
         } catch (e) {
             console.error("Error deleting event:", e);
-            throw e; // Re-throw so UI knows it failed!
+            throw e;
         } finally {
             setLoading(false);
         }

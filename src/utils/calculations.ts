@@ -14,23 +14,29 @@ export function calculateBalances(users: User[], expenses: Expense[]): Map<strin
     expenses.forEach(expense => {
         const payerId = expense.payer_id;
         const amount = expense.amount;
-        const splitCount = users.length; // Assuming equal split among all users for now
+
+        // Determine who is involved in the split
+        // If involved_users is presented and not empty, use it. Otherwise assume everyone.
+        let involvedUserIds = expense.involved_users;
+        if (!involvedUserIds || involvedUserIds.length === 0) {
+            involvedUserIds = users.map(u => u.id);
+        }
+
+        const splitCount = involvedUserIds.length;
 
         if (splitCount === 0) return;
 
         const splitAmount = amount / splitCount;
 
         // Payer gets credit for the full amount they paid
-        // But they are also responsible for their share.
-        // Net effect: +Amount - SplitAmount = + (Amount * (n-1)/n)
-        // Or simpler: Creditor gets +Amount, everyone (including payer) gets -SplitAmount.
-
-        // Add amount to payer
         balances.set(payerId, (balances.get(payerId) || 0) + amount);
 
-        // Subtract split amount from everyone
-        users.forEach(user => {
-            balances.set(user.id, (balances.get(user.id) || 0) - splitAmount);
+        // Subtract split amount from involved users
+        involvedUserIds.forEach(userId => {
+            // Need to check if user still exists/is in the map to be safe
+            if (balances.has(userId)) {
+                balances.set(userId, (balances.get(userId) || 0) - splitAmount);
+            }
         });
     });
 
