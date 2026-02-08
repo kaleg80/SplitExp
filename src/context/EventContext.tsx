@@ -18,6 +18,8 @@ interface EventContextType {
     createEvent: (name: string, currency: string) => Promise<string | null>;
     loadEvent: (id: string) => Promise<void>;
     addUser: (name: string) => Promise<void>;
+    updateUser: (id: string, name: string) => Promise<void>;
+    deleteUser: (id: string) => Promise<boolean>; // Returns true if deleted, false if blocked
     addExpense: (description: string, amount: number, payerId: string, receipt?: File | null, involvedUserIds?: string[]) => Promise<void>;
     updateExpense: (id: string, description: string, amount: number, payerId: string, receipt?: File | string | null, involvedUserIds?: string[]) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
@@ -173,6 +175,65 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error("Error adding user:", e);
         }
+    }, [event]);
+
+    const updateUser = useCallback(async (id: string, name: string) => {
+        if (!event) return;
+
+        // Optimistic
+        setEvent(prev => prev ? {
+            ...prev,
+            users: prev.users.map(u => u.id === id ? { ...u, name } : u)
+        } : null);
+
+        try {
+            await supabase.from('users').update({ name }).eq('id', id);
+        } catch (e) {
+            console.error("Error updating user:", e);
+        }
+    }, [event]);
+
+    const deleteUser = useCallback(async (id: string) => {
+        if (!event) return false;
+
+        // Check dependencies (expenses)
+        // 1. Is Payer?
+        const isPayer = event.expenses.some(e => e.payer_id === id);
+        // 2. Is Involved?
+        const isInvolved = event.expenses.some(e => e.involved_users ? e.involved_users.includes(id) : true); // If null/undefined, usually implies everyone, need check.
+        // Actually if involved_users is null, it means everyone. But we can't delete a user if there are expenses where they might be involved.
+        // If involved_users is specific, check ID.
+
+        // Stricter check: If there are ANY expenses, deleting a user is risky unless we assume they are removed from all historical calculations.
+        // If they are removed from DB, the `expenses` table foreign key might cascade delete the expense OR fail depending on schema.
+        // Schema says: payer_id ... on delete cascade. So deleting a payer deletes their expenses.
+        // But what about involved_users? It's a text array. It won't cascade. 
+        // If we delete user, their ID remains in `involved_users` array of existing expenses, causing calculations to look up a non-existent user.
+
+        if (isPayer) {
+            alert('Нельзя удалить участника, который платил за расходы. Сначала удалите или измените эти расходы.');
+            return false;
+        }
+
+        // Technically we should check if they owe anything or are owed, but simplicity first.
+
+        if (confirm('Вы уверены? Если этот участник задействован в старых расходах, расчеты могут сломаться.')) {
+            // Optimistic
+            const oldUsers = event.users;
+            setEvent(prev => prev ? { ...prev, users: prev.users.filter(u => u.id !== id) } : null);
+
+            try {
+                const { error } = await supabase.from('users').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            } catch (e) {
+                console.error("Error deleting user:", e);
+                setEvent(prev => prev ? { ...prev, users: oldUsers } : null);
+                alert("Ошибка при удалении.");
+                return false;
+            }
+        }
+        return false;
     }, [event]);
 
     const uploadReceipt = useCallback(async (file: File) => {
@@ -375,7 +436,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     }, [removeFromRecent, exitEvent]);
 
     return (
-        <EventContext.Provider value={{ event, loading, recentEvents, createEvent, loadEvent, addUser, addExpense, updateExpense, deleteExpense, deleteEvent, exitEvent }}>
+        <EventContext.Provider value={{ event, loading, recentEvents, createEvent, loadEvent, addUser, updateUser, deleteUser, addExpense, updateExpense, deleteExpense, deleteEvent, exitEvent }}>
             {children}
         </EventContext.Provider>
     );

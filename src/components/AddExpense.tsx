@@ -227,31 +227,47 @@ export default function AddExpense({ onClose, existingExpense }: AddExpenseProps
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', opacity: 0.7 }}>Чек (фото или PDF)</label>
 
-                        <div
-                            style={{
-                                border: '1px dashed var(--border)',
-                                borderRadius: '12px',
-                                padding: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                cursor: 'pointer'
-                            }}
-                            onClick={() => document.getElementById('file-upload')?.click()}
-                        >
-                            <div style={{ background: 'var(--card-bg)', padding: '8px', borderRadius: '8px' }}>
-                                <Upload size={20} />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <div
+                                style={{
+                                    border: '2px dashed var(--border)',
+                                    borderRadius: '12px',
+                                    padding: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    cursor: 'pointer',
+                                    flex: 1
+                                }}
+                                onClick={() => document.getElementById('file-upload')?.click()}
+                            >
+                                <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px' }}>
+                                    <Upload size={20} />
+                                </div>
+                                <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
+                                    {file ? file.name : (existingExpense?.receipt_url ? 'Заменить файл' : 'Загрузить чек')}
+                                </div>
+                                <input
+                                    id="file-upload"
+                                    type="file"
+                                    accept="image/jpeg,image/png,application/pdf"
+                                    style={{ display: 'none' }}
+                                    onChange={handleFileChange}
+                                />
                             </div>
-                            <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
-                                {file ? file.name : (existingExpense?.receipt_url ? 'Заменить (текущий чек загружен)' : 'Нажмите, чтобы загрузить')}
-                            </div>
-                            <input
-                                id="file-upload"
-                                type="file"
-                                accept="image/jpeg,image/png,application/pdf"
-                                style={{ display: 'none' }}
-                                onChange={handleFileChange}
-                            />
+
+                            {existingExpense?.receipt_url && !file && (
+                                <a
+                                    href={existingExpense.receipt_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}
+                                    title="Посмотреть чек"
+                                >
+                                    <FileText size={20} />
+                                </a>
+                            )}
                         </div>
                     </div>
 

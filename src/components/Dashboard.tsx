@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { useEvent } from '@/context/EventContext';
 import { useToast } from '@/context/ToastContext';
 import { calculateBalances, simplifyDebts } from '@/utils/calculations';
-import { Plus, Users, Receipt, LogOut, ArrowRight, Share2, Loader2, Edit2, Paperclip, Trash2 } from 'lucide-react';
+import { Plus, Users, Receipt, LogOut, ArrowRight, Share2, Loader2, Edit2, Paperclip, Trash2, X, Save, CheckCircle2 } from 'lucide-react';
 import AddExpense from './AddExpense';
-import { Expense } from '@/types';
+import { Expense, User } from '@/types';
 
 // Memoized Expense Item Component
 const ExpenseItem = memo(({ expense, currencySymbol, getUserName, onEdit }: {
@@ -17,56 +17,197 @@ const ExpenseItem = memo(({ expense, currencySymbol, getUserName, onEdit }: {
 }) => (
     <div
         className="card"
-        style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+        style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
         onClick={() => onEdit(expense)}
     >
         <div>
-            <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
                 {expense.description}
-                {expense.receipt_url && <Paperclip size={14} style={{ opacity: 0.7 }} />}
+                {expense.receipt_url && (
+                    <a
+                        href={expense.receipt_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ display: 'flex', alignItems: 'center', padding: '4px', background: 'var(--surface-hover)', borderRadius: '50%' }}
+                        title="Посмотреть чек"
+                    >
+                        <Paperclip size={14} style={{ opacity: 0.9, color: 'var(--primary)' }} />
+                    </a>
+                )}
             </div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{getUserName(expense.payer_id)} заплатил {currencySymbol}{expense.amount}</div>
+            <div style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: '4px' }}>{getUserName(expense.payer_id)} заплатил {currencySymbol}{expense.amount}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 'bold' }}>{currencySymbol}{expense.amount}</span>
-            <Edit2 size={14} style={{ opacity: 0.5 }} />
+            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{currencySymbol}{expense.amount}</span>
+            <Edit2 size={16} style={{ opacity: 0.5 }} />
         </div>
     </div>
 ));
 ExpenseItem.displayName = 'ExpenseItem';
 
 
-// Memoized Debt Item Component
-const DebtItem = memo(({ debt, currencySymbol, getUserName }: {
+// Debt Item Component with Settle Feature
+const DebtItem = memo(({ debt, currencySymbol, getUserName, onSettle }: {
     debt: any;
     currencySymbol: string;
     getUserName: (id: string) => string;
-}) => (
-    <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowRight size={16} />
+    onSettle: (fromId: string, toId: string, amount: number) => Promise<void>;
+}) => {
+    const [amount, setAmount] = useState('');
+    const [isPaying, setIsPaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handlePay = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const val = parseFloat(amount);
+        if (!val || val <= 0) return;
+
+        setIsLoading(true);
+        await onSettle(debt.from, debt.to, val);
+        setIsLoading(false);
+        setIsPaying(false);
+        setAmount('');
+    };
+
+    return (
+        <div className="card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ArrowRight size={16} />
+                    </div>
+                    <span>
+                        <strong style={{ color: 'var(--foreground)' }}>{getUserName(debt.from)}</strong>
+                        {' '}должен{' '}
+                        <strong style={{ color: 'var(--foreground)' }}>{getUserName(debt.to)}</strong>
+                    </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>{currencySymbol}{debt.amount.toFixed(2)}</span>
+                    <button
+                        className={isPaying ? "btn-secondary" : "btn"}
+                        onClick={() => setIsPaying(!isPaying)}
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: '0.85rem',
+                            height: 'auto',
+                            background: isPaying ? undefined : 'var(--success, #10b981)',
+                            color: isPaying ? undefined : 'white',
+                            border: isPaying ? undefined : 'none'
+                        }}
+                    >
+                        {isPaying ? 'Отмена' : 'Оплатить'}
+                    </button>
+                </div>
             </div>
-            <span>
-                <strong style={{ color: 'var(--foreground)' }}>{getUserName(debt.from)}</strong>
-                {' '}должен{' '}
-                <strong style={{ color: 'var(--foreground)' }}>{getUserName(debt.to)}</strong>
-            </span>
+
+            {isPaying && (
+                <form onSubmit={handlePay} className="animate-in" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', marginTop: '4px' }}>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Сумма:</span>
+                    <input
+                        type="number"
+                        className="input"
+                        style={{ width: '80px', padding: '4px 8px', height: '32px' }}
+                        value={amount}
+                        placeholder={debt.amount.toFixed(0)}
+                        onChange={e => setAmount(e.target.value)}
+                        step="0.01"
+                        autoFocus
+                    />
+                    <button type="submit" className="btn" style={{ padding: '4px 12px', height: '32px' }} disabled={isLoading}>
+                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                    </button>
+                </form>
+            )}
         </div>
-        <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>{currencySymbol}{debt.amount.toFixed(2)}</span>
-    </div>
-));
+    );
+});
 DebtItem.displayName = 'DebtItem';
 
 
+interface EditUserModalProps {
+    user: User;
+    onClose: () => void;
+    onUpdate: (id: string, name: string) => Promise<void>;
+    onDelete: (id: string) => Promise<boolean>;
+}
+
+const EditUserModal = ({ user, onClose, onUpdate, onDelete }: EditUserModalProps) => {
+    const [name, setName] = useState(user.name);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (name.trim() !== user.name) {
+            setIsLoading(true);
+            await onUpdate(user.id, name.trim());
+            setIsLoading(false);
+        }
+        onClose();
+    };
+
+    const handleDelete = async () => {
+        setIsLoading(true);
+        const success = await onDelete(user.id);
+        setIsLoading(false);
+        if (success) onClose();
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 60,
+            background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+            <div className="card animate-in" style={{ width: '90%', maxWidth: '400px', padding: '24px', position: 'relative' }}>
+                <button
+                    onClick={onClose}
+                    style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+                >
+                    <X size={24} />
+                </button>
+
+                <h3 style={{ marginBottom: '16px' }}>Редактировать участника</h3>
+
+                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <input
+                        className="input"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Имя"
+                        autoFocus
+                    />
+
+                    <button type="submit" className="btn" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="animate-spin" /> : <>Сохранить <Save size={18} style={{ marginLeft: '8px' }} /></>}
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn"
+                        style={{ background: 'rgba(255, 50, 50, 0.1)', color: 'var(--error)', border: '1px solid var(--error)' }}
+                        onClick={handleDelete}
+                        disabled={isLoading}
+                    >
+                        Удалить <Trash2 size={18} style={{ marginLeft: '8px' }} />
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
 export default function Dashboard() {
-    const { event, exitEvent, deleteEvent, addUser, loading } = useEvent();
+    const { event, exitEvent, deleteEvent, addUser, updateUser, deleteUser, addExpense, loading } = useEvent();
     const { showToast } = useToast();
     const [newUserName, setNewUserName] = useState('');
     const [showAddUser, setShowAddUser] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const [showAddExpense, setShowAddExpense] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
 
     // Memoize calculations to avoid re-rendering issues
     const { balances, debts } = useMemo(() => {
@@ -110,7 +251,28 @@ export default function Dashboard() {
         }
     };
 
-    const getUserName = (id: string) => event.users.find(u => u.id === id)?.name || 'Неизвестно';
+    const handleSettleDebt = async (fromId: string, toId: string, amount: number) => {
+        const payerName = getUserName(fromId);
+        const receiverName = getUserName(toId);
+
+        await addExpense(
+            `Возврат долга (${payerName} -> ${receiverName})`,
+            amount,
+            fromId,
+            null, // No receipt
+            [toId] // The expense is FOR the person receiving the money (cancels their credit)
+        );
+        showToast('Оплата записана!', 'success');
+    };
+
+    // Optimization: Create a map for O(1) user lookups
+    const userMap = useMemo(() => {
+        const map = new Map<string, string>();
+        event.users.forEach(u => map.set(u.id, u.name));
+        return map;
+    }, [event.users]);
+
+    const getUserName = useCallback((id: string) => userMap.get(id) || 'Неизвестно', [userMap]);
 
     if (isDeleting) {
         return (
@@ -160,7 +322,50 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Users Section */}
+            {/* Main Action Button (Top) */}
+            <button
+                className="btn"
+                style={{
+                    width: '100%',
+                    padding: '16px',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '24px',
+                    boxShadow: '0 4px 20px var(--primary-glow)',
+                }}
+                onClick={() => setShowAddExpense(true)}
+            >
+                <Plus size={24} />
+                Добавить Расход
+            </button>
+
+            {/* Debts / Settlement */}
+            <section style={{ marginBottom: '24px' }}>
+                <h3 style={{ marginBottom: '12px' }}>Расчеты</h3>
+                {debts.length === 0 ? (
+                    <div className="card" style={{ padding: '16px', textAlign: 'center', opacity: 0.7 }}>
+                        Все рассчитано!
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {debts.map((debt, idx) => (
+                            <DebtItem
+                                key={idx}
+                                debt={debt}
+                                currencySymbol={currencySymbol}
+                                getUserName={getUserName}
+                                onSettle={handleSettleDebt}
+                            />
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            {/* Users Section (Moved ABOVE History, making it visible) */}
             <section style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3>Участники</h3>
@@ -169,7 +374,7 @@ export default function Dashboard() {
                         style={{ padding: '6px 16px', fontSize: '0.9rem', background: 'var(--primary)', color: 'white' }}
                         onClick={() => setShowAddUser(!showAddUser)}
                     >
-                        <Plus size={16} style={{ marginRight: '4px' }} /> Добавить
+                        <Plus size={14} style={{ marginRight: '4px' }} /> Добавить
                     </button>
                 </div>
 
@@ -188,37 +393,22 @@ export default function Dashboard() {
 
                 <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
                     {event.users.map(user => (
-                        <div key={user.id} className="card" style={{ padding: '8px 16px', minWidth: 'max-content' }}>
+                        <div
+                            key={user.id}
+                            className="card"
+                            style={{ padding: '8px 16px', minWidth: 'max-content', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            onClick={() => setEditingUser(user)}
+                        >
                             {user.name}
+                            <Edit2 size={12} style={{ opacity: 0.5 }} />
                         </div>
                     ))}
                     {event.users.length === 0 && <p>Нет участников.</p>}
                 </div>
             </section>
 
-            {/* Debts / Settlement */}
+            {/* Recent Activity (Bottom) */}
             <section style={{ marginBottom: '24px' }}>
-                <h3 style={{ marginBottom: '12px' }}>Расчеты</h3>
-                {debts.length === 0 ? (
-                    <div className="card" style={{ padding: '16px', textAlign: 'center', opacity: 0.7 }}>
-                        Все рассчитано!
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {debts.map((debt, idx) => (
-                            <DebtItem
-                                key={idx}
-                                debt={debt}
-                                currencySymbol={currencySymbol}
-                                getUserName={getUserName}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
-
-            {/* Recent Activity */}
-            <section>
                 <h3 style={{ marginBottom: '12px' }}>История</h3>
                 {event.expenses.length === 0 ? (
                     <p>Нет расходов.</p>
@@ -237,25 +427,6 @@ export default function Dashboard() {
                 )}
             </section>
 
-            {/* FAB for Adding Expense */}
-            <button
-                className="btn"
-                style={{
-                    position: 'fixed',
-                    bottom: '24px',
-                    right: '24px',
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    padding: 0,
-                    boxShadow: '0 4px 20px var(--primary-glow)',
-                    zIndex: 40
-                }}
-                onClick={() => setShowAddExpense(true)}
-                aria-label="Добавить расход"
-            >
-                <Plus size={24} />
-            </button>
 
             {(showAddExpense || editingExpense) && (
                 <AddExpense
@@ -264,6 +435,15 @@ export default function Dashboard() {
                         setEditingExpense(null);
                     }}
                     existingExpense={editingExpense || undefined}
+                />
+            )}
+
+            {editingUser && (
+                <EditUserModal
+                    user={editingUser}
+                    onClose={() => setEditingUser(null)}
+                    onUpdate={updateUser}
+                    onDelete={deleteUser}
                 />
             )}
         </div>

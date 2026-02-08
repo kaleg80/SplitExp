@@ -11,6 +11,9 @@ export function calculateBalances(users: User[], expenses: Expense[]): Map<strin
     // Initialize balances
     users.forEach(user => balances.set(user.id, 0));
 
+    // Optimization: Pre-calculate all user IDs
+    const allUserIds = users.map(u => u.id);
+
     expenses.forEach(expense => {
         const payerId = expense.payer_id;
         const amount = expense.amount;
@@ -19,7 +22,7 @@ export function calculateBalances(users: User[], expenses: Expense[]): Map<strin
         // If involved_users is presented and not empty, use it. Otherwise assume everyone.
         let involvedUserIds = expense.involved_users;
         if (!involvedUserIds || involvedUserIds.length === 0) {
-            involvedUserIds = users.map(u => u.id);
+            involvedUserIds = allUserIds;
         }
 
         const splitCount = involvedUserIds.length;

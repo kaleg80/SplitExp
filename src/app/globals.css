@@ -1,33 +1,40 @@
 /* @import "tailwindcss"; removed */
 
 /* 
-  Since the user requested Vanilla CSS but create-next-app might have included some tailwind boilerplate if not careful (though I used --no-tailwind),
-  I am writing pure CSS here. However, to be safe and clean, I'll use standard CSS variables.
+  CoinKeeper Theme Implementation
+  Background: Big Stone (#182045)
+  Primary: Coin Gold (#FFB703) / Vibrant Cyan
+  Surface: Lighter Blue / Glass
 */
 
 :root {
-  /* Color Palette: Deep Space / Neon Violet */
-  --background: #0a0a16;
+  /* Color Palette: CoinKeeper Dark */
+  --background: #182045;
+  /* Big Stone */
   --foreground: #ffffff;
 
-  --primary: #8b5cf6;
-  /* Violet */
-  --primary-glow: rgba(139, 92, 246, 0.5);
+  --primary: #fb8500;
+  /* Vibrant Orange/Gold */
+  --primary-glow: rgba(251, 133, 0, 0.4);
 
-  --secondary: #ec4899;
-  /* Pink */
+  --secondary: #219ebc;
+  /* Blue */
 
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-hover: rgba(255, 255, 255, 0.1);
-  --border: rgba(255, 255, 255, 0.1);
+  /* Surfaces */
+  --surface: rgba(255, 255, 255, 0.08);
+  /* Slightly more visible on dark blue */
+  --surface-hover: rgba(255, 255, 255, 0.15);
+  --border: rgba(255, 255, 255, 0.15);
 
-  --success: #10b981;
-  --error: #ef4444;
+  --success: #2ecc71;
+  /* Vibrant Green */
+  --error: #ff4757;
+  /* Vibrant Red */
 
-  /* Spacing & Radius */
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  /* Spacing & Radius - CoinKeeper loves rounds */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -57,13 +64,14 @@ a {
 /* Typography */
 h1 {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
+  /* Bolder */
   letter-spacing: -0.02em;
 }
 
 h2 {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -78,7 +86,7 @@ p {
   max-width: 600px;
   /* Mobile focused */
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -91,13 +99,16 @@ p {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  /* Deeper shadow */
   transition: transform 0.2s, background 0.2s;
 }
 
 .card:hover {
   background: var(--surface-hover);
+  transform: translateY(-2px);
+  /* Subtle lift */
 }
 
 /* Button */
@@ -105,46 +116,57 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 24px;
-  border-radius: var(--radius-md);
-  font-weight: 600;
+  padding: 14px 28px;
+  /* Larger touch targets */
+  border-radius: 100px;
+  /* Pill shape */
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
   background: var(--primary);
   color: white;
-  box-shadow: 0 0 15px var(--primary-glow);
+  box-shadow: 0 4px 15px var(--primary-glow);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
 }
 
 .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   box-shadow: none;
+  border-radius: 100px;
+  font-weight: 600;
+  padding: 12px 24px;
 }
 
 .btn-secondary:hover {
   background: var(--surface);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Input */
 .input {
   width: 100%;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--border);
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.3);
+  /* Darker input bg for contrast */
+  border: 2px solid var(--border);
   border-radius: var(--radius-md);
   color: white;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .input:focus {
   outline: none;
   border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 /* Utility Animations */
@@ -161,5 +183,5 @@ p {
 }
 
 .animate-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
