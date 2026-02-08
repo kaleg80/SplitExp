@@ -41,7 +41,23 @@ export default function AddExpense({ onClose, existingExpense }: AddExpenseProps
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!description || !amount || !payerId || involvedUserIds.length === 0) return;
+
+        if (!description) {
+            alert('Введите описание');
+            return;
+        }
+        if (!amount || parseFloat(amount) <= 0) {
+            alert('Введите корректную сумму');
+            return;
+        }
+        if (!payerId) {
+            alert('Выберите, кто платил');
+            return;
+        }
+        if (involvedUserIds.length === 0) {
+            alert('Выберите, на кого делить расходы');
+            return;
+        }
 
         setIsSubmitting(true);
         try {

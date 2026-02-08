@@ -238,7 +238,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
     const uploadReceipt = useCallback(async (file: File) => {
         try {
-            // Compress Image
+            // Compress Image (Try/Catch inside to fallback to original)
             const options = {
                 maxSizeMB: 1,
                 maxWidthOrHeight: 1920,
@@ -268,7 +268,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
             return data.publicUrl;
         } catch (error) {
             console.error('Error uploading receipt:', error);
-            return null;
+            throw error; // Propagate error to caller
         }
     }, []);
 
@@ -293,6 +293,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         try {
             let receipt_url = null;
             if (receipt) {
+                // Now this will throw if upload fails, triggering rollback
                 receipt_url = await uploadReceipt(receipt);
             }
 
@@ -308,11 +309,11 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
             if (error) throw error;
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error adding expense:", e);
             // Rollback
             setEvent(prev => prev ? { ...prev, expenses: prev.expenses.filter(e => e.id !== tempId) } : null);
-            alert('Ошибка при добавлении расхода. Попробуйте еще раз.');
+            alert(`Ошибка при сохранении: ${e.message || 'Неизвестная ошибка'}. Попробуйте снова.`);
         }
     }, [event, uploadReceipt]);
 
