@@ -4,14 +4,22 @@ import { useState } from 'react';
 import { useEvent } from '@/context/EventContext';
 import { ArrowRight, Loader2, Clock, ChevronRight } from 'lucide-react';
 
+const CURRENCIES = [
+    { code: 'USD', symbol: '$', label: 'USD ($)' },
+    { code: 'EUR', symbol: '€', label: 'EUR (€)' },
+    { code: 'RUB', symbol: '₽', label: 'RUB (₽)' },
+    { code: 'KZT', symbol: '₸', label: 'KZT (₸)' },
+];
+
 export default function CreateEvent() {
     const { createEvent, loadEvent, recentEvents, loading } = useEvent();
     const [name, setName] = useState('');
+    const [currency, setCurrency] = useState('USD');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
-            await createEvent(name.trim());
+            await createEvent(name.trim(), currency);
         }
     };
 
@@ -30,6 +38,19 @@ export default function CreateEvent() {
                         onChange={(e) => setName(e.target.value)}
                         disabled={loading}
                     />
+
+                    <select
+                        className="input"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        disabled={loading}
+                        style={{ appearance: 'none', background: 'var(--card-bg)', color: 'white' }}
+                    >
+                        {CURRENCIES.map(c => (
+                            <option key={c.code} value={c.code}>{c.label}</option>
+                        ))}
+                    </select>
+
                     <button type="submit" className="btn" disabled={!name.trim() || loading}>
                         {loading ? <Loader2 className="animate-spin" /> : <>Начать <ArrowRight size={18} style={{ marginLeft: '8px' }} /></>}
                     </button>

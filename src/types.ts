@@ -13,11 +13,13 @@ export interface Expense {
     payer_id: string; // Changed from payerId to match DB
     created_at?: string;
     split_type: 'EQUAL';
+    receipt_url?: string;
 }
 
 export interface Event {
     id: string;
     name: string;
+    currency: string;
     users: User[];
     expenses: Expense[];
     created_at: string;
