@@ -121,17 +121,8 @@ export default function AddExpense({ onClose, existingExpense }: AddExpenseProps
     if (!event) return null;
 
     return (
-        <div style={{
-            position: 'fixed', inset: 0, zIndex: 50,
-            background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
-        }}>
-            <div className="card animate-in" style={{
-                width: '100%', maxWidth: '600px',
-                borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
-                padding: '24px', position: 'relative',
-                maxHeight: '90vh', overflowY: 'auto'
-            }}>
+        <div className="modal-overlay">
+            <div className="modal-card animate-in">
                 <button
                     onClick={onClose}
                     style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
