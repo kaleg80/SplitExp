@@ -185,3 +185,33 @@ p {
 .animate-in {
   animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
+    /* Decrease padding on mobile */
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    /* Smaller title */
+  }
+
+  .btn {
+    padding: 12px 20px;
+    /* Slightly smaller buttons */
+  }
+
+  /* Prevent iOS zoom on inputs */
+  .input {
+    font-size: 16px;
+  }
+}
+
+/* Safe Area for iPhones without home button */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .container {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}

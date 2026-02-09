@@ -4,7 +4,7 @@ import { useState, useMemo, memo, useCallback } from 'react';
 import { useEvent } from '@/context/EventContext';
 import { useToast } from '@/context/ToastContext';
 import { calculateBalances, simplifyDebts } from '@/utils/calculations';
-import { Plus, Users, Receipt, LogOut, ArrowRight, Share2, Loader2, Edit2, Paperclip, Trash2, X, Save, CheckCircle2 } from 'lucide-react';
+import { Plus, Users, Receipt, LogOut, ArrowRight, Share2, Loader2, Edit2, Paperclip, Trash2, X, Save, CheckCircle2, RefreshCw } from 'lucide-react';
 import AddExpense from './AddExpense';
 import { Expense, User } from '@/types';
 
@@ -200,7 +200,7 @@ const EditUserModal = ({ user, onClose, onUpdate, onDelete }: EditUserModalProps
 
 
 export default function Dashboard() {
-    const { event, exitEvent, deleteEvent, addUser, updateUser, deleteUser, addExpense, loading } = useEvent();
+    const { event, exitEvent, deleteEvent, addUser, updateUser, deleteUser, addExpense, loading, loadEvent } = useEvent();
     const { showToast } = useToast();
     const [newUserName, setNewUserName] = useState('');
     const [showAddUser, setShowAddUser] = useState(false);
@@ -292,6 +292,15 @@ export default function Dashboard() {
                     <h1 style={{ fontSize: '2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.name}</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button
+                        onClick={() => event && loadEvent(event.id)}
+                        className="btn-secondary"
+                        style={{ padding: '8px', borderRadius: '50%' }}
+                        aria-label="Обновить"
+                        disabled={loading}
+                    >
+                        <RefreshCw size={20} color="var(--primary)" className={loading ? "animate-spin" : ""} />
+                    </button>
                     <button onClick={handleShare} className="btn-secondary" style={{ padding: '8px', borderRadius: '50%' }} aria-label="Поделиться">
                         <Share2 size={20} color="var(--primary)" />
                     </button>
@@ -317,7 +326,11 @@ export default function Dashboard() {
                     <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>Участники</span>
                 </div>
                 <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{currencySymbol}{Number(event.expenses.reduce((acc, curr) => acc + curr.amount, 0)).toFixed(0)}</span>
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{currencySymbol}{Number(event.expenses.reduce((acc, curr) => {
+                        // Exclude debt payments from total
+                        if (curr.description.startsWith('Возврат долга')) return acc;
+                        return acc + curr.amount;
+                    }, 0)).toFixed(0)}</span>
                     <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>Всего трат</span>
                 </div>
             </div>
