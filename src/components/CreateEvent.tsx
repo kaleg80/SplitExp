@@ -57,6 +57,33 @@ export default function CreateEvent() {
                 </form>
             </div>
 
+            {/* How it works */}
+            <div style={{ marginTop: '32px', marginBottom: '32px', textAlign: 'center', opacity: 0.8 }}>
+                <h3 style={{ marginBottom: '16px', fontSize: '1.1rem' }}>Как это работает?</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                    <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🎉</div>
+                        <strong>1. Создайте</strong>
+                        <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>событие для компании</p>
+                    </div>
+                    <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>👥</div>
+                        <strong>2. Добавьте</strong>
+                        <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>людей (с кем делите счет)</p>
+                    </div>
+                    <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💸</div>
+                        <strong>3. Запишите</strong>
+                        <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>кто платил и за кого</p>
+                    </div>
+                    <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✅</div>
+                        <strong>4. Итог</strong>
+                        <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>баланс — кто кому должен</p>
+                    </div>
+                </div>
+            </div>
+
             {recentEvents.length > 0 && (
                 <section className="animate-in" style={{ animationDelay: '0.1s' }}>
                     <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', opacity: 0.8 }}>
